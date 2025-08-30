@@ -1,0 +1,22 @@
+[package]
+name = "turret-game"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bevy = "0.16.1"
+bevy_obj = "0.16.1"
+bon = "3.7.0"
+mlua = { version = "0.11.2", features = ["lua54", "vendored"] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json5 = "0.2.1"
+thiserror = "2.0.16"
+tiled = "0.14.0"
+xml = "0.8.20"
+
+[profile.dev]
+opt-level = 1
+
+# Enable a large amount of optimization in the dev profile for dependencies.
+[profile.dev.package."*"]
+opt-level = 3
