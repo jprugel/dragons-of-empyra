@@ -1,7 +1,7 @@
 use crate::Canvas;
-use crate::builder::BuilderExt;
 use bevy::color::palettes::css::*;
 use bevy::prelude::*;
+use bevy_builder::BuilderExt;
 
 #[derive(Component)]
 pub struct PlayerResources {

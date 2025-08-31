@@ -1,15 +1,15 @@
-pub mod builder;
 mod game;
 mod map;
 mod menu;
 mod ui;
-use crate::builder::BuilderExt;
+
 use crate::game::*;
 use crate::map::*;
 use crate::menu::*;
 use crate::ui::*;
 use bevy::asset::load_internal_binary_asset;
 use bevy::prelude::*;
+use bevy_builder::BuilderExt;
 use bevy_obj::ObjPlugin;
 
 fn main() {

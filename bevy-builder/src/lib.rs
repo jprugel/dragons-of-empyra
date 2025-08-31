@@ -21,9 +21,15 @@ pub struct NodeBuilder {
     flex_direction: Option<FlexDirection>,
     justify_content: Option<JustifyContent>,
     align_items: Option<AlignItems>,
+    border: Option<UiRect>,
 }
 
 impl NodeBuilder {
+    pub fn border(mut self, border: UiRect) -> Self {
+        self.border = Some(border);
+        self
+    }
+
     pub fn width(mut self, width: Val) -> Self {
         self.width = width;
         self
@@ -78,6 +84,7 @@ impl NodeBuilder {
         let justify_content = self.justify_content.unwrap_or_default();
         let align_items = self.align_items.unwrap_or_default();
         let flex_direction = self.flex_direction.unwrap_or_default();
+        let border = self.border.unwrap_or_default();
 
         Node {
             width: self.width,
@@ -90,6 +97,7 @@ impl NodeBuilder {
             justify_content,
             align_items,
             flex_direction,
+            border,
             ..default()
         }
     }

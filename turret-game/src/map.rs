@@ -1,6 +1,6 @@
 use crate::Canvas;
-use crate::builder::BuilderExt;
 use bevy::prelude::*;
+use bevy_builder::BuilderExt;
 
 #[derive(Component)]
 struct Map {

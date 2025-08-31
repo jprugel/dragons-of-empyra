@@ -1,4 +1,6 @@
-# Turret Game
-- [ ] Bind the card to the bottom of the window unless hovered.
-- [ ] Implement a system to type on the cards.
-- [ ] Turn the text and affects of cards into json objects.
+# Dragons of Empyra
+Heavily inspired by the classic game "Dragons of Empyra" with a few modern twists.
+
+## New Features
+- Added an integrated means to add lua scripts.
+- Uses a voxel style instead of a flat style.

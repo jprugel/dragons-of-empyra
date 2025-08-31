@@ -1,8 +1,8 @@
 use crate::Canvas;
 use crate::GameState;
-use crate::builder::BuilderExt;
 use bevy::color::palettes::basic::*;
 use bevy::prelude::*;
+use bevy_builder::BuilderExt;
 
 const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
