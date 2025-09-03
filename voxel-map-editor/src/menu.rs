@@ -17,11 +17,10 @@ impl Plugin for MenuPlugin {
                 Update,
                 options_menu_system.run_if(in_state(MenuState::Options)),
             )
-            .add_systems(OnEnter(MenuState::Options), disable_main_menu)
-            .add_systems(OnEnter(MenuState::MainMenu), enable_main_menu)
-            .add_systems(OnEnter(MenuState::MainMenu), disable_options_menu)
+            .add_systems(OnEnter(MenuState::MainMenu), setup_main_menu)
             .add_systems(OnEnter(MenuState::Options), setup_options_menu)
-            .add_systems(OnExit(AppState::Menu), menu_cleanup);
+            .add_systems(OnExit(MenuState::MainMenu), menu_cleanup)
+            .add_systems(OnExit(MenuState::Options), menu_cleanup);
     }
 }
 
@@ -34,7 +33,10 @@ enum MenuState {
 }
 
 #[derive(Component)]
-struct Menu;
+struct MenuCanvas;
+
+#[derive(Component)]
+struct OptionsMenu;
 
 fn setup_options_menu(mut commands: Commands) {
     let canvas_node = Node::builder()
@@ -52,17 +54,25 @@ fn setup_options_menu(mut commands: Commands) {
         .margin(UiRect::all(Val::Px(20.0)))
         .build();
 
-    let canvas_bundle = (canvas_node, Menu, BackgroundColor(DARK_SLATE_GRAY.into()));
+    let canvas_bundle = (
+        canvas_node,
+        MenuCanvas,
+        BackgroundColor(DARK_SLATE_GRAY.into()),
+    );
     let back_button_bundle = (
         back_button,
-        Menu,
+        OptionsMenu,
+        Button,
         BackgroundColor(DARK_CYAN.into()),
         Text::new("Back"),
     );
 
     let canvas = commands.spawn(canvas_bundle).id();
-    let back_button = commands.spawn(back_button_bundle).insert(ChildOf(canvas));
+    let _back_button = commands.spawn(back_button_bundle).insert(ChildOf(canvas));
 }
+
+#[derive(Component)]
+struct StartButton;
 
 fn setup_main_menu(mut commands: Commands) {
     let canvas_node = Node::builder()
@@ -87,9 +97,10 @@ fn setup_main_menu(mut commands: Commands) {
         .margin(UiRect::all(Val::Px(20.0)))
         .build();
 
-    let canvas_bundle = (canvas_node, Menu, BackgroundColor(DARK_SLATE_GRAY.into()));
+    let canvas_bundle = (canvas_node, BackgroundColor(DARK_SLATE_GRAY.into()));
     let start_button_bundle = (
         start_button,
+        StartButton,
         Text::new("Start"),
         Button,
         BackgroundColor(DARK_CYAN.into()),
@@ -117,7 +128,7 @@ fn setup_main_menu(mut commands: Commands) {
 
 fn main_menu_system(
     mut menu_state: ResMut<NextState<MenuState>>,
-    interactions: Query<&mut Interaction>,
+    interactions: Query<&mut Interaction, With<StartButton>>,
 ) {
     for interaction in &interactions {
         match *interaction {
@@ -131,7 +142,7 @@ fn main_menu_system(
 
 fn options_menu_system(
     mut menu_state: ResMut<NextState<MenuState>>,
-    interactions: Query<&mut Interaction>,
+    interactions: Query<&mut Interaction, With<OptionsMenu>>,
 ) {
     for interaction in &interactions {
         match *interaction {
@@ -143,25 +154,7 @@ fn options_menu_system(
     }
 }
 
-fn disable_options_menu(mut menu: Query<(Entity, &mut Visibility), With<Menu>>) {
-    for (_entity, mut visibility) in &mut menu {
-        *visibility = Visibility::Hidden;
-    }
-}
-
-fn disable_main_menu(mut menu: Query<(Entity, &mut Visibility), With<Menu>>) {
-    for (_entity, mut visibility) in &mut menu {
-        *visibility = Visibility::Hidden;
-    }
-}
-
-fn enable_main_menu(mut menu: Query<(Entity, &mut Visibility), With<Menu>>) {
-    for (_entity, mut visibility) in &mut menu {
-        *visibility = Visibility::Inherited;
-    }
-}
-
-fn menu_cleanup(menu: Query<Entity, With<Menu>>, mut commands: Commands) {
+fn menu_cleanup(menu: Query<Entity, With<MenuCanvas>>, mut commands: Commands) {
     for entity in &menu {
         commands.entity(entity).despawn();
     }
