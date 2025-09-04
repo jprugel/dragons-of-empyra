@@ -2,10 +2,11 @@ mod menu;
 
 use crate::menu::MenuPlugin;
 use bevy::prelude::*;
+use bevy_ui_text_input::TextInputPlugin;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, MenuPlugin))
+        .add_plugins((DefaultPlugins, MenuPlugin, TextInputPlugin))
         .init_state::<AppState>()
         .add_systems(Startup, setup_camera)
         .add_systems(Startup, setup_state)
