@@ -40,6 +40,9 @@ struct MenuCanvas;
 struct OptionsMenu;
 
 fn setup_options_menu(mut commands: Commands) {
+    let margin = UiRect::all(Val::Px(10.0));
+    let border = UiRect::all(Val::Px(5.0));
+
     let canvas_node = Node::builder()
         .width(Val::Percent(100.0))
         .height(Val::Percent(100.0))
@@ -48,58 +51,30 @@ fn setup_options_menu(mut commands: Commands) {
         .justify_content(JustifyContent::Center)
         .build();
 
-    let x_label_node = Node::builder()
+    let label_node = Node::builder()
         .width(Val::Percent(30.0))
         .height(Val::Percent(100.0))
         .build();
 
-    let x_input_node = Node::builder()
+    let input_node = Node::builder()
         .width(Val::Percent(70.0))
         .height(Val::Percent(100.0))
         .align_items(AlignItems::Center)
         .justify_content(JustifyContent::Center)
         .build();
 
-    let y_input_node = Node::builder()
-        .width(Val::Percent(100.0))
-        .height(Val::Percent(100.0))
-        .align_items(AlignItems::Center)
-        .justify_content(JustifyContent::Center)
-        .build();
-
-    let z_input_node = Node::builder()
-        .width(Val::Percent(100.0))
-        .height(Val::Percent(100.0))
-        .align_items(AlignItems::Center)
-        .justify_content(JustifyContent::Center)
-        .build();
-
-    let x_node = Node::builder()
+    let dimension_node = Node::builder()
         .width(Val::Percent(30.0))
         .height(Val::Percent(10.0))
-        .margin(UiRect::all(Val::Px(20.0)))
-        .border(UiRect::all(Val::Px(10.0)))
+        .margin(margin)
+        .border(border)
         .build();
 
-    let y_node = Node::builder()
+    let button_node = Node::builder()
         .width(Val::Percent(30.0))
         .height(Val::Percent(10.0))
-        .margin(UiRect::all(Val::Px(20.0)))
-        .border(UiRect::all(Val::Px(10.0)))
-        .build();
-
-    let z_node = Node::builder()
-        .width(Val::Percent(30.0))
-        .height(Val::Percent(10.0))
-        .margin(UiRect::all(Val::Px(20.0)))
-        .border(UiRect::all(Val::Px(10.0)))
-        .build();
-
-    let back_button = Node::builder()
-        .width(Val::Percent(30.0))
-        .height(Val::Percent(10.0))
-        .margin(UiRect::all(Val::Px(20.0)))
-        .border(UiRect::all(Val::Px(10.0)))
+        .margin(margin)
+        .border(border)
         .build();
 
     let canvas_bundle = (
@@ -107,8 +82,9 @@ fn setup_options_menu(mut commands: Commands) {
         MenuCanvas,
         BackgroundColor(DARK_SLATE_GRAY.into()),
     );
-    let x_input_bundle = (
-        x_input_node,
+
+    let width_input_bundle = (
+        input_node.clone(),
         TextInputNode {
             mode: TextInputMode::SingleLine,
             filter: Some(TextInputFilter::Integer),
@@ -118,33 +94,48 @@ fn setup_options_menu(mut commands: Commands) {
         },
         BackgroundColor(RED.into()),
     );
-    let x_label_bundle = (
-        x_label_node,
-        Text::new("X"),
+    let length_input_bundle = (
+        input_node.clone(),
+        TextInputNode {
+            mode: TextInputMode::SingleLine,
+            filter: Some(TextInputFilter::Integer),
+            max_chars: Some(5),
+            justification: JustifyText::Center,
+            ..default()
+        },
+        BackgroundColor(RED.into()),
+    );
+    let height_input_bundle = (
+        input_node,
+        TextInputNode {
+            mode: TextInputMode::SingleLine,
+            filter: Some(TextInputFilter::Integer),
+            max_chars: Some(5),
+            justification: JustifyText::Center,
+            ..default()
+        },
+        BackgroundColor(RED.into()),
+    );
+    let label_bundle = (
+        label_node,
         TextFont {
-            font_size: 40.,
+            font_size: 32.,
             ..default()
         },
     );
-    let x_bundle = (
-        x_node,
+    let dimension_bundle = (
+        dimension_node.clone(),
         BorderColor(DARK_GRAY.into()),
         BackgroundColor(DARK_CYAN.into()),
     );
-    let y_bundle = (
-        y_node,
-        TextInputNode::default(),
-        BorderColor(DARK_GRAY.into()),
+    let submit_button_bundle = (
+        button_node.clone(),
+        Button,
         BackgroundColor(DARK_CYAN.into()),
-    );
-    let z_bundle = (
-        z_node,
-        TextInputNode::default(),
-        BorderColor(DARK_GRAY.into()),
-        BackgroundColor(DARK_CYAN.into()),
+        Text::new("Submit"),
     );
     let back_button_bundle = (
-        back_button,
+        button_node,
         OptionsMenu,
         Button,
         BackgroundColor(DARK_CYAN.into()),
@@ -152,11 +143,31 @@ fn setup_options_menu(mut commands: Commands) {
     );
 
     let canvas = commands.spawn(canvas_bundle).id();
-    let x_input = commands.spawn(x_bundle).insert(ChildOf(canvas)).id();
-    let _x_label = commands.spawn(x_label_bundle).insert(ChildOf(x_input));
-    let _x_input = commands.spawn(x_input_bundle).insert(ChildOf(x_input));
-    let _y_input = commands.spawn(y_bundle).insert(ChildOf(canvas));
-    let _z_input = commands.spawn(z_bundle).insert(ChildOf(canvas));
+    let width = commands
+        .spawn(dimension_bundle.clone())
+        .insert(ChildOf(canvas))
+        .id();
+    let _width_label = commands
+        .spawn(label_bundle.clone())
+        .insert((ChildOf(width), Text::new("Width")));
+    let _width_input = commands.spawn(width_input_bundle).insert(ChildOf(width));
+    let length = commands
+        .spawn(dimension_bundle.clone())
+        .insert(ChildOf(canvas))
+        .id();
+    let _length_label = commands
+        .spawn(label_bundle.clone())
+        .insert((ChildOf(length), Text::new("Length")));
+    let _length_input = commands.spawn(length_input_bundle).insert(ChildOf(length));
+    let height = commands
+        .spawn(dimension_bundle.clone())
+        .insert(ChildOf(canvas))
+        .id();
+    let _height_label = commands
+        .spawn(label_bundle)
+        .insert((ChildOf(height), Text::new("Height")));
+    let _height_input = commands.spawn(height_input_bundle).insert(ChildOf(height));
+    let _submit_button = commands.spawn(submit_button_bundle).insert(ChildOf(canvas));
     let _back_button = commands.spawn(back_button_bundle).insert(ChildOf(canvas));
 }
 
