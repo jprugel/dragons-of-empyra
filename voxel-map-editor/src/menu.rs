@@ -2,7 +2,7 @@ use crate::AppState;
 use bevy::color::palettes::css::*;
 use bevy::prelude::*;
 use bevy_builder::BuilderExt;
-use bevy_ui_text_input::{TextInputFilter, TextInputMode, TextInputNode};
+use bevy_ui_text_input::{TextInputContents, TextInputFilter, TextInputMode, TextInputNode};
 
 pub struct MenuPlugin;
 
@@ -10,6 +10,7 @@ impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<MenuState>()
             .add_systems(OnEnter(AppState::Menu), setup_main_menu)
+            .init_resource::<Dimensions>()
             .add_systems(
                 Update,
                 main_menu_system.run_if(in_state(MenuState::MainMenu)),
@@ -21,8 +22,14 @@ impl Plugin for MenuPlugin {
             .add_systems(OnEnter(MenuState::MainMenu), setup_main_menu)
             .add_systems(OnEnter(MenuState::Options), setup_options_menu)
             .add_systems(OnExit(MenuState::MainMenu), menu_cleanup)
+            .add_systems(Update, debug_dimensions)
+            .add_systems(Update, dimensions_menu_system)
             .add_systems(OnExit(MenuState::Options), menu_cleanup);
     }
+}
+
+fn debug_dimensions(mut dimensions: ResMut<Dimensions>) {
+    info!("{:?}", dimensions);
 }
 
 #[derive(States, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -33,16 +40,35 @@ enum MenuState {
     Options,
 }
 
+#[derive(Resource, Debug, Default)]
+struct Dimensions {
+    width: u32,
+    length: u32,
+    height: u32,
+}
+
+#[derive(Component)]
+struct SubmitDimensions;
+
 #[derive(Component)]
 struct MenuCanvas;
 
 #[derive(Component)]
 struct OptionsMenu;
 
-fn setup_options_menu(mut commands: Commands) {
-    let margin = UiRect::all(Val::Px(10.0));
-    let border = UiRect::all(Val::Px(5.0));
+#[derive(Component)]
+struct WidthInput;
 
+#[derive(Component)]
+struct LengthInput;
+
+#[derive(Component)]
+struct HeightInput;
+
+const MARGIN: UiRect = UiRect::all(Val::Px(10.0));
+const BORDER: UiRect = UiRect::all(Val::Px(5.0));
+
+fn setup_options_menu(mut commands: Commands) {
     let canvas_node = Node::builder()
         .width(Val::Percent(100.0))
         .height(Val::Percent(100.0))
@@ -66,15 +92,15 @@ fn setup_options_menu(mut commands: Commands) {
     let dimension_node = Node::builder()
         .width(Val::Percent(30.0))
         .height(Val::Percent(10.0))
-        .margin(margin)
-        .border(border)
+        .margin(MARGIN)
+        .border(BORDER)
         .build();
 
     let button_node = Node::builder()
         .width(Val::Percent(30.0))
         .height(Val::Percent(10.0))
-        .margin(margin)
-        .border(border)
+        .margin(MARGIN)
+        .border(BORDER)
         .build();
 
     let canvas_bundle = (
@@ -85,6 +111,7 @@ fn setup_options_menu(mut commands: Commands) {
 
     let width_input_bundle = (
         input_node.clone(),
+        WidthInput,
         TextInputNode {
             mode: TextInputMode::SingleLine,
             filter: Some(TextInputFilter::Integer),
@@ -96,6 +123,7 @@ fn setup_options_menu(mut commands: Commands) {
     );
     let length_input_bundle = (
         input_node.clone(),
+        LengthInput,
         TextInputNode {
             mode: TextInputMode::SingleLine,
             filter: Some(TextInputFilter::Integer),
@@ -107,6 +135,7 @@ fn setup_options_menu(mut commands: Commands) {
     );
     let height_input_bundle = (
         input_node,
+        HeightInput,
         TextInputNode {
             mode: TextInputMode::SingleLine,
             filter: Some(TextInputFilter::Integer),
@@ -186,15 +215,15 @@ fn setup_main_menu(mut commands: Commands) {
     let start_button = Node::builder()
         .width(Val::Percent(30.0))
         .height(Val::Percent(10.0))
-        .border(UiRect::all(Val::Px(2.0)))
-        .margin(UiRect::all(Val::Px(20.0)))
+        .border(BORDER)
+        .margin(MARGIN)
         .build();
 
     let settings_button = Node::builder()
         .width(Val::Percent(30.0))
         .height(Val::Percent(10.0))
-        .border(UiRect::all(Val::Px(2.0)))
-        .margin(UiRect::all(Val::Px(20.0)))
+        .border(BORDER)
+        .margin(MARGIN)
         .build();
 
     let canvas_bundle = (canvas_node, BackgroundColor(DARK_SLATE_GRAY.into()));
@@ -235,6 +264,19 @@ fn main_menu_system(
             Interaction::Pressed => {
                 menu_state.set(MenuState::Options);
             }
+            _ => {}
+        }
+    }
+}
+
+fn dimensions_menu_system(
+    mut dimensions: ResMut<Dimensions>,
+    interactions: Query<&mut Interaction, With<SubmitDimensions>>,
+    contents: Single<&TextInputContents, With<WidthInput>>,
+) {
+    for interaction in &interactions {
+        match *interaction {
+            Interaction::Pressed => dimensions.width = contents.get().to_string().parse().unwrap(),
             _ => {}
         }
     }
