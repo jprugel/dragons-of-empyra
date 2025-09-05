@@ -48,8 +48,13 @@ fn setup_options_menu(mut commands: Commands) {
         .justify_content(JustifyContent::Center)
         .build();
 
+    let x_label_node = Node::builder()
+        .width(Val::Percent(30.0))
+        .height(Val::Percent(100.0))
+        .build();
+
     let x_input_node = Node::builder()
-        .width(Val::Percent(100.0))
+        .width(Val::Percent(70.0))
         .height(Val::Percent(100.0))
         .align_items(AlignItems::Center)
         .justify_content(JustifyContent::Center)
@@ -111,6 +116,15 @@ fn setup_options_menu(mut commands: Commands) {
             justification: JustifyText::Center,
             ..default()
         },
+        BackgroundColor(RED.into()),
+    );
+    let x_label_bundle = (
+        x_label_node,
+        Text::new("X"),
+        TextFont {
+            font_size: 40.,
+            ..default()
+        },
     );
     let x_bundle = (
         x_node,
@@ -139,6 +153,7 @@ fn setup_options_menu(mut commands: Commands) {
 
     let canvas = commands.spawn(canvas_bundle).id();
     let x_input = commands.spawn(x_bundle).insert(ChildOf(canvas)).id();
+    let _x_label = commands.spawn(x_label_bundle).insert(ChildOf(x_input));
     let _x_input = commands.spawn(x_input_bundle).insert(ChildOf(x_input));
     let _y_input = commands.spawn(y_bundle).insert(ChildOf(canvas));
     let _z_input = commands.spawn(z_bundle).insert(ChildOf(canvas));
