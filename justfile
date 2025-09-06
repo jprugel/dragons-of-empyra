@@ -1,9 +1,9 @@
 set shell := ["powershell.exe", "-c"]
 
-alias r := run
+alias r := client
 
-run:
+client:
     cargo run --bin turret-game --features bevy/dynamic_linking
 
-edit:
+editor:
     cargo run --bin voxel-map-editor --features bevy/dynamic_linking

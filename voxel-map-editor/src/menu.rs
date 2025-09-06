@@ -33,6 +33,7 @@ impl Plugin for MenuPlugin {
             .add_systems(Update, process_dimensions::<HeightInput>)
             .add_systems(Update, process_dimensions::<LengthInput>)
             .add_systems(Update, process_dimensions::<WidthInput>)
+            .add_systems(OnExit(AppState::Menu), menu_cleanup)
             .add_systems(OnExit(MenuState::Options), menu_cleanup);
     }
 }
@@ -237,7 +238,11 @@ fn setup_main_menu(mut commands: Commands) {
         .margin(MARGIN)
         .build();
 
-    let canvas_bundle = (canvas_node, BackgroundColor(DARK_SLATE_GRAY.into()));
+    let canvas_bundle = (
+        canvas_node,
+        MenuCanvas,
+        BackgroundColor(DARK_SLATE_GRAY.into()),
+    );
     let start_button_bundle = (
         start_button,
         StartButton,
@@ -280,21 +285,16 @@ fn main_menu_system(
     }
 }
 
-#[derive(Event)]
-struct DimensionSubmitEvent;
-
 fn dimensions_menu_system<T: Component>(
+    mut app_state: ResMut<NextState<AppState>>,
     interactions: Query<&mut Interaction, With<SubmitDimensions>>,
     mut queue: Single<&mut TextInputQueue, With<T>>,
-    mut contents: Query<&mut TextInputContents>,
 ) {
     for interaction in &interactions {
         match *interaction {
             Interaction::Pressed => {
                 queue.add(TextInputAction::Submit);
-                for content in &mut contents {
-                    dbg!(content);
-                }
+                app_state.set(AppState::Generating);
             }
             _ => {}
         }
