@@ -4,7 +4,8 @@ use bevy::prelude::*;
 use bevy_builder::BuilderExt;
 use bevy_ui_text_input::actions::TextInputAction;
 use bevy_ui_text_input::{
-    TextInputFilter, TextInputMode, TextInputNode, TextInputQueue, TextSubmitEvent,
+    TextInputContents, TextInputFilter, TextInputMode, TextInputNode, TextInputQueue,
+    TextSubmitEvent,
 };
 
 pub struct MenuPlugin;
@@ -26,8 +27,12 @@ impl Plugin for MenuPlugin {
             .add_systems(OnEnter(MenuState::Options), setup_options_menu)
             .add_systems(OnExit(MenuState::MainMenu), menu_cleanup)
             .add_systems(Update, debug_dimensions)
-            .add_systems(Update, dimensions_menu_system)
-            .add_systems(Update, process_dimensions)
+            .add_systems(Update, dimensions_menu_system::<HeightInput>)
+            .add_systems(Update, dimensions_menu_system::<LengthInput>)
+            .add_systems(Update, dimensions_menu_system::<WidthInput>)
+            .add_systems(Update, process_dimensions::<HeightInput>)
+            .add_systems(Update, process_dimensions::<LengthInput>)
+            .add_systems(Update, process_dimensions::<WidthInput>)
             .add_systems(OnExit(MenuState::Options), menu_cleanup);
     }
 }
@@ -275,25 +280,46 @@ fn main_menu_system(
     }
 }
 
-fn dimensions_menu_system(
+#[derive(Event)]
+struct DimensionSubmitEvent;
+
+fn dimensions_menu_system<T: Component>(
     interactions: Query<&mut Interaction, With<SubmitDimensions>>,
-    mut contents: Single<&mut TextInputQueue, With<WidthInput>>,
+    mut queue: Single<&mut TextInputQueue, With<T>>,
+    mut contents: Query<&mut TextInputContents>,
 ) {
-    info!("Dimensions menu system");
     for interaction in &interactions {
         match *interaction {
-            Interaction::Pressed => contents.add(TextInputAction::Submit),
+            Interaction::Pressed => {
+                queue.add(TextInputAction::Submit);
+                for content in &mut contents {
+                    dbg!(content);
+                }
+            }
             _ => {}
         }
     }
 }
 
-fn process_dimensions(
+use std::any::TypeId;
+
+fn process_dimensions<T: Component>(
     mut dimensions: ResMut<Dimensions>,
     mut event_reader: EventReader<TextSubmitEvent>,
+    dimension: Single<Entity, With<T>>,
 ) {
     for event in event_reader.read() {
-        dimensions.width = event.text.parse().unwrap_or(0);
+        if event.entity == *dimension {
+            if let Ok(val) = event.text.parse::<u32>() {
+                if TypeId::of::<T>() == TypeId::of::<WidthInput>() {
+                    dimensions.width = val;
+                } else if TypeId::of::<T>() == TypeId::of::<LengthInput>() {
+                    dimensions.length = val;
+                } else if TypeId::of::<T>() == TypeId::of::<HeightInput>() {
+                    dimensions.height = val;
+                }
+            }
+        }
     }
 }
 
