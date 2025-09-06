@@ -1,3 +1,4 @@
+mod map;
 mod menu;
 
 use crate::menu::MenuPlugin;
@@ -18,6 +19,7 @@ pub enum AppState {
     #[default]
     Loading,
     Menu,
+    Generating,
     InApp,
 }
 
