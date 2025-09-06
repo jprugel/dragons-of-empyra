@@ -3,7 +3,9 @@ use bevy::color::palettes::css::*;
 use bevy::prelude::*;
 use bevy_builder::BuilderExt;
 use bevy_ui_text_input::actions::TextInputAction;
-use bevy_ui_text_input::{TextInputFilter, TextInputMode, TextInputNode, TextInputQueue};
+use bevy_ui_text_input::{
+    TextInputFilter, TextInputMode, TextInputNode, TextInputQueue, TextSubmitEvent,
+};
 
 pub struct MenuPlugin;
 
@@ -25,6 +27,7 @@ impl Plugin for MenuPlugin {
             .add_systems(OnExit(MenuState::MainMenu), menu_cleanup)
             .add_systems(Update, debug_dimensions)
             .add_systems(Update, dimensions_menu_system)
+            .add_systems(Update, process_dimensions)
             .add_systems(OnExit(MenuState::Options), menu_cleanup);
     }
 }
@@ -114,6 +117,7 @@ fn setup_options_menu(mut commands: Commands) {
         input_node.clone(),
         WidthInput,
         TextInputNode {
+            clear_on_submit: false,
             mode: TextInputMode::SingleLine,
             filter: Some(TextInputFilter::Integer),
             max_chars: Some(5),
@@ -272,7 +276,6 @@ fn main_menu_system(
 }
 
 fn dimensions_menu_system(
-    mut dimensions: ResMut<Dimensions>,
     interactions: Query<&mut Interaction, With<SubmitDimensions>>,
     mut contents: Single<&mut TextInputQueue, With<WidthInput>>,
 ) {
@@ -285,7 +288,14 @@ fn dimensions_menu_system(
     }
 }
 
-// Need to actually give the dimensions to the resource.
+fn process_dimensions(
+    mut dimensions: ResMut<Dimensions>,
+    mut event_reader: EventReader<TextSubmitEvent>,
+) {
+    for event in event_reader.read() {
+        dimensions.width = event.text.parse().unwrap_or(0);
+    }
+}
 
 fn options_menu_system(
     mut menu_state: ResMut<NextState<MenuState>>,
