@@ -1,13 +1,21 @@
 mod map;
 mod menu;
 
+use crate::map::MapPlugin;
 use crate::menu::MenuPlugin;
 use bevy::prelude::*;
+use bevy_obj::ObjPlugin;
 use bevy_ui_text_input::TextInputPlugin;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, MenuPlugin, TextInputPlugin))
+        .add_plugins((
+            DefaultPlugins,
+            MenuPlugin,
+            TextInputPlugin,
+            MapPlugin,
+            ObjPlugin,
+        ))
         .init_state::<AppState>()
         .add_systems(Startup, setup_camera)
         .add_systems(Startup, setup_state)
@@ -28,5 +36,8 @@ fn setup_state(mut app_state: ResMut<NextState<AppState>>) {
 }
 
 fn setup_camera(mut commands: Commands) {
-    commands.spawn(Camera3d::default());
+    commands.spawn((
+        Camera3d::default(),
+        Transform::from_xyz(-2.5, 4.5, 9.0).looking_at(Vec3::ZERO, Vec3::Y),
+    ));
 }

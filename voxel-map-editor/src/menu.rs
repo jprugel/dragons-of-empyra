@@ -1,12 +1,23 @@
 use crate::AppState;
+use crate::map::GenerateMapEvent;
+use crate::map::Map;
 use bevy::color::palettes::css::*;
 use bevy::prelude::*;
 use bevy_builder::BuilderExt;
 use bevy_ui_text_input::actions::TextInputAction;
 use bevy_ui_text_input::{
-    TextInputContents, TextInputFilter, TextInputMode, TextInputNode, TextInputQueue,
-    TextSubmitEvent,
+    TextInputFilter, TextInputMode, TextInputNode, TextInputQueue, TextSubmitEvent,
 };
+use std::collections::{HashMap, hash_map::Values};
+
+#[derive(Debug)]
+enum Dimension {
+    Length(u32),
+    Width(u32),
+    Height(u32),
+}
+#[derive(Resource, Debug, Default)]
+struct InputMap(HashMap<Entity, Dimension>);
 
 pub struct MenuPlugin;
 
@@ -15,30 +26,30 @@ impl Plugin for MenuPlugin {
         app.init_state::<MenuState>()
             .add_systems(OnEnter(AppState::Menu), setup_main_menu)
             .init_resource::<Dimensions>()
+            .init_resource::<InputMap>()
+            .add_event::<GenerateMapEvent>()
+            .add_event::<SubmitDimensionsEvent>()
             .add_systems(
                 Update,
                 main_menu_system.run_if(in_state(MenuState::MainMenu)),
             )
             .add_systems(
                 Update,
-                options_menu_system.run_if(in_state(MenuState::Options)),
+                back_button_system.run_if(in_state(MenuState::Options)),
             )
             .add_systems(OnEnter(MenuState::MainMenu), setup_main_menu)
             .add_systems(OnEnter(MenuState::Options), setup_options_menu)
             .add_systems(OnExit(MenuState::MainMenu), menu_cleanup)
-            .add_systems(Update, debug_dimensions)
-            .add_systems(Update, dimensions_menu_system::<HeightInput>)
-            .add_systems(Update, dimensions_menu_system::<LengthInput>)
-            .add_systems(Update, dimensions_menu_system::<WidthInput>)
-            .add_systems(Update, process_dimensions::<HeightInput>)
-            .add_systems(Update, process_dimensions::<LengthInput>)
-            .add_systems(Update, process_dimensions::<WidthInput>)
+            //.add_systems(Update, debug_dimensions)
+            .add_systems(Update, submit_button_system)
+            .add_systems(Update, on_submit_button_system)
+            .add_systems(Update, on_submit_dimensions)
             .add_systems(OnExit(AppState::Menu), menu_cleanup)
             .add_systems(OnExit(MenuState::Options), menu_cleanup);
     }
 }
 
-fn debug_dimensions(mut dimensions: ResMut<Dimensions>) {
+fn debug_dimensions(mut dimensions: ResMut<InputMap>) {
     info!("{:?}", dimensions);
 }
 
@@ -78,7 +89,7 @@ struct HeightInput;
 const MARGIN: UiRect = UiRect::all(Val::Px(10.0));
 const BORDER: UiRect = UiRect::all(Val::Px(5.0));
 
-fn setup_options_menu(mut commands: Commands) {
+fn setup_options_menu(mut commands: Commands, mut input_map: ResMut<InputMap>) {
     let canvas_node = Node::builder()
         .width(Val::Percent(100.0))
         .height(Val::Percent(100.0))
@@ -137,6 +148,7 @@ fn setup_options_menu(mut commands: Commands) {
         LengthInput,
         TextInputNode {
             mode: TextInputMode::SingleLine,
+            clear_on_submit: false,
             filter: Some(TextInputFilter::Integer),
             max_chars: Some(5),
             justification: JustifyText::Center,
@@ -149,6 +161,7 @@ fn setup_options_menu(mut commands: Commands) {
         HeightInput,
         TextInputNode {
             mode: TextInputMode::SingleLine,
+            clear_on_submit: false,
             filter: Some(TextInputFilter::Integer),
             max_chars: Some(5),
             justification: JustifyText::Center,
@@ -191,7 +204,10 @@ fn setup_options_menu(mut commands: Commands) {
     let _width_label = commands
         .spawn(label_bundle.clone())
         .insert((ChildOf(width), Text::new("Width")));
-    let _width_input = commands.spawn(width_input_bundle).insert(ChildOf(width));
+    let width_input = commands
+        .spawn(width_input_bundle)
+        .insert(ChildOf(width))
+        .id();
     let length = commands
         .spawn(dimension_bundle.clone())
         .insert(ChildOf(canvas))
@@ -199,7 +215,11 @@ fn setup_options_menu(mut commands: Commands) {
     let _length_label = commands
         .spawn(label_bundle.clone())
         .insert((ChildOf(length), Text::new("Length")));
-    let _length_input = commands.spawn(length_input_bundle).insert(ChildOf(length));
+    let length_input = commands
+        .spawn(length_input_bundle)
+        .insert(ChildOf(length))
+        .id();
+
     let height = commands
         .spawn(dimension_bundle.clone())
         .insert(ChildOf(canvas))
@@ -207,9 +227,15 @@ fn setup_options_menu(mut commands: Commands) {
     let _height_label = commands
         .spawn(label_bundle)
         .insert((ChildOf(height), Text::new("Height")));
-    let _height_input = commands.spawn(height_input_bundle).insert(ChildOf(height));
+    let height_input = commands
+        .spawn(height_input_bundle)
+        .insert(ChildOf(height))
+        .id();
     let _submit_button = commands.spawn(submit_button_bundle).insert(ChildOf(canvas));
     let _back_button = commands.spawn(back_button_bundle).insert(ChildOf(canvas));
+    input_map.0.insert(width_input, Dimension::Width(0));
+    input_map.0.insert(length_input, Dimension::Length(0));
+    input_map.0.insert(height_input, Dimension::Height(0));
 }
 
 #[derive(Component)]
@@ -285,45 +311,84 @@ fn main_menu_system(
     }
 }
 
-fn dimensions_menu_system<T: Component>(
-    mut app_state: ResMut<NextState<AppState>>,
+fn submit_button_system(
     interactions: Query<&mut Interaction, With<SubmitDimensions>>,
-    mut queue: Single<&mut TextInputQueue, With<T>>,
+    mut queue: Query<&mut TextInputQueue>,
 ) {
     for interaction in &interactions {
         match *interaction {
             Interaction::Pressed => {
-                queue.add(TextInputAction::Submit);
-                app_state.set(AppState::Generating);
+                for mut item in queue.iter_mut() {
+                    item.add(TextInputAction::Submit);
+                }
             }
             _ => {}
         }
     }
 }
 
-use std::any::TypeId;
+#[derive(Event)]
+struct SubmitDimensionsEvent;
 
-fn process_dimensions<T: Component>(
-    mut dimensions: ResMut<Dimensions>,
-    mut event_reader: EventReader<TextSubmitEvent>,
-    dimension: Single<Entity, With<T>>,
+fn on_submit_button_system(
+    mut text_submit: EventReader<TextSubmitEvent>,
+    mut input_map: ResMut<InputMap>,
+    mut event_writer: EventWriter<GenerateMapEvent>,
 ) {
-    for event in event_reader.read() {
-        if event.entity == *dimension {
-            if let Ok(val) = event.text.parse::<u32>() {
-                if TypeId::of::<T>() == TypeId::of::<WidthInput>() {
-                    dimensions.width = val;
-                } else if TypeId::of::<T>() == TypeId::of::<LengthInput>() {
-                    dimensions.length = val;
-                } else if TypeId::of::<T>() == TypeId::of::<HeightInput>() {
-                    dimensions.height = val;
+    for event in text_submit.read() {
+        let value: &mut Dimension = input_map.0.get_mut(&event.entity).unwrap();
+        match value {
+            Dimension::Width(width) => {
+                *width = event.text.parse().unwrap_or(0);
+            }
+            Dimension::Length(length) => {
+                *length = event.text.parse().unwrap_or(0);
+            }
+            Dimension::Height(height) => {
+                *height = event.text.parse().unwrap_or(0);
+            }
+        }
+        if input_map.0.values().all(|x| match x {
+            Dimension::Width(width) => *width >= 1,
+            Dimension::Length(length) => *length >= 1,
+            Dimension::Height(height) => *height >= 1,
+        }) {
+            info!("All dimensions are valid");
+            // Extract values from the HashMap
+            let mut width_val = 0;
+            let mut length_val = 0;
+            let mut height_val = 0;
+
+            for dimension in input_map.0.values() {
+                match dimension {
+                    Dimension::Width(w) => width_val = *w,
+                    Dimension::Length(l) => length_val = *l,
+                    Dimension::Height(h) => height_val = *h,
                 }
             }
+
+            event_writer.write(GenerateMapEvent(
+                Map::builder()
+                    .width(width_val)
+                    .length(length_val)
+                    .height(height_val)
+                    .build(),
+            ));
         }
     }
 }
 
-fn options_menu_system(
+fn on_submit_dimensions(
+    mut event_reader: EventReader<GenerateMapEvent>,
+    mut app_state: ResMut<NextState<AppState>>,
+) {
+    for _ in event_reader.read() {
+        // Handle the event
+        app_state.set(AppState::Generating);
+    }
+}
+
+fn back_button_system(
     mut menu_state: ResMut<NextState<MenuState>>,
     interactions: Query<&mut Interaction, With<OptionsMenu>>,
 ) {

@@ -1,7 +1,7 @@
 use crate::AppState;
 use bevy::prelude::*;
 
-struct MapPlugin;
+pub struct MapPlugin;
 
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
@@ -33,7 +33,7 @@ impl From<(u32, u32, u32)> for Dimensions {
 }
 
 #[derive(Default)]
-struct MapBuilder {
+pub struct MapBuilder {
     width: u32,
     length: u32,
     height: u32,
@@ -61,9 +61,9 @@ impl MapBuilder {
                 (0..self.length).flat_map(move |y| {
                     (0..self.width).map(move |x| {
                         Tile::new(
-                            x as f32 / 2.0 - self.width as f32,
-                            y as f32 / 2.0 - self.width as f32,
-                            z as f32 / 2.0 - self.width as f32,
+                            x as f32 - self.width as f32 / 2.0,
+                            y as f32 - self.width as f32 / 2.0,
+                            z as f32,
                         )
                     })
                 })
@@ -101,19 +101,19 @@ impl Tile {
 }
 
 #[derive(Clone)]
-struct Map {
+pub struct Map {
     dimensions: Dimensions,
     nodes: Vec<Tile>,
 }
 
 impl Map {
-    fn builder() -> MapBuilder {
+    pub fn builder() -> MapBuilder {
         MapBuilder::default()
     }
 }
 
 #[derive(Event)]
-struct GenerateMapEvent(Map);
+pub struct GenerateMapEvent(pub Map);
 
 impl GenerateMapEvent {
     fn map(&self) -> Map {
@@ -121,12 +121,21 @@ impl GenerateMapEvent {
     }
 }
 
-fn generate_map(mut event_reader: EventReader<GenerateMapEvent>, mut commands: Commands) {
+fn generate_map(
+    mut event_reader: EventReader<GenerateMapEvent>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
     for event in event_reader.read() {
         for tile in event.map().nodes.into_iter() {
             // Process each tile here
             let (x, y, z): (f32, f32, f32) = tile.into();
-            commands.spawn(Transform::from_translation(Vec3::new(x, y, z)));
+            commands.spawn((
+                Mesh3d(asset_server.load("frame.obj")),
+                MeshMaterial3d(materials.add(Color::srgb_u8(124, 144, 255))),
+                Transform::from_translation(Vec3::new(x, y, z)),
+            ));
         }
     }
 }
