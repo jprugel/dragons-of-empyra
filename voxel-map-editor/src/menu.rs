@@ -2,7 +2,8 @@ use crate::AppState;
 use bevy::color::palettes::css::*;
 use bevy::prelude::*;
 use bevy_builder::BuilderExt;
-use bevy_ui_text_input::{TextInputContents, TextInputFilter, TextInputMode, TextInputNode};
+use bevy_ui_text_input::actions::TextInputAction;
+use bevy_ui_text_input::{TextInputFilter, TextInputMode, TextInputNode, TextInputQueue};
 
 pub struct MenuPlugin;
 
@@ -160,6 +161,7 @@ fn setup_options_menu(mut commands: Commands) {
     let submit_button_bundle = (
         button_node.clone(),
         Button,
+        SubmitDimensions,
         BackgroundColor(DARK_CYAN.into()),
         Text::new("Submit"),
     );
@@ -272,15 +274,18 @@ fn main_menu_system(
 fn dimensions_menu_system(
     mut dimensions: ResMut<Dimensions>,
     interactions: Query<&mut Interaction, With<SubmitDimensions>>,
-    contents: Single<&TextInputContents, With<WidthInput>>,
+    mut contents: Single<&mut TextInputQueue, With<WidthInput>>,
 ) {
+    info!("Dimensions menu system");
     for interaction in &interactions {
         match *interaction {
-            Interaction::Pressed => dimensions.width = contents.get().to_string().parse().unwrap(),
+            Interaction::Pressed => contents.add(TextInputAction::Submit),
             _ => {}
         }
     }
 }
+
+// Need to actually give the dimensions to the resource.
 
 fn options_menu_system(
     mut menu_state: ResMut<NextState<MenuState>>,
