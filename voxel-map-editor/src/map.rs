@@ -1,11 +1,13 @@
 use crate::AppState;
+use bevy::pbr::wireframe::{WireframeConfig, WireframePlugin};
 use bevy::prelude::*;
 
 pub struct MapPlugin;
 
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(AppState::Generating), generate_map);
+        app.add_systems(OnEnter(AppState::Generating), generate_map)
+            .add_plugins(WireframePlugin::default());
     }
 }
 
@@ -125,14 +127,18 @@ fn generate_map(
     mut event_reader: EventReader<GenerateMapEvent>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut wireframe_config: ResMut<WireframeConfig>,
 ) {
+    wireframe_config.global = !wireframe_config.global;
     for event in event_reader.read() {
         for tile in event.map().nodes.into_iter() {
             // Process each tile here
+            let cuboid = meshes.add(Cuboid::default());
             let (x, y, z): (f32, f32, f32) = tile.into();
             commands.spawn((
-                Mesh3d(asset_server.load("frame.obj")),
+                Mesh3d(cuboid),
                 MeshMaterial3d(materials.add(Color::srgb_u8(124, 144, 255))),
                 Transform::from_translation(Vec3::new(x, y, z)),
             ));

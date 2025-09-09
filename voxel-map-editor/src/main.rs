@@ -1,6 +1,9 @@
+mod camera;
 mod map;
 mod menu;
+mod overlay;
 
+use crate::camera::CameraPlugin;
 use crate::map::MapPlugin;
 use crate::menu::MenuPlugin;
 use bevy::prelude::*;
@@ -15,6 +18,7 @@ fn main() {
             TextInputPlugin,
             MapPlugin,
             ObjPlugin,
+            CameraPlugin,
         ))
         .init_state::<AppState>()
         .add_systems(Startup, setup_camera)

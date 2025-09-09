@@ -1,10 +1,11 @@
 use bevy::prelude::*;
+use bevy_builder::*;
 
 struct OverlayPlugin;
 
 impl Plugin for OverlayPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, overlay_system);
+        app.add_systems(Startup, setup_overlay);
     }
 }
 
@@ -26,7 +27,7 @@ fn setup_overlay(mut commands: Commands) {
 
     let canvas_bundle = (canvas_node);
 
-    let canvas = commands.spawn(canvas_node).id();
+    let canvas = commands.spawn(canvas_bundle).id();
 
     let bar = commands.spawn(bar_node).insert(ChildOf(canvas)).id();
 }
